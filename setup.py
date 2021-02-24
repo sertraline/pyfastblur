@@ -8,6 +8,7 @@ this_directory = os.path.abspath(os.path.dirname(__file__))
 with open(os.path.join(this_directory, 'README.md'), encoding='utf-8') as f:
     long_description = f.read()
 
+
 class build_py(_build_py):
     def run(self):
         self.run_command("build_ext")
@@ -35,25 +36,42 @@ class build_py(_build_py):
 VERSION = [('MAJOR_VERSION', '1'),
            ('MINOR_VERSION', '0')]
 
+sources = ['pyfastblur/src/blur.cpp']
+
 if os.name == 'nt':
     bmodule = Extension('pyfastblur_cpp',
                         define_macros=VERSION,
-                        include_dirs=['pyfastblur/src/win'],
+                        include_dirs=[
+                            'pyfastblur/src',
+                            'pyfastblur/src/win'
+                        ],
                         library_dirs=['pyfastblur/src/win'],
                         libraries=['libpng16', 'zlib'],
-                        sources=['pyfastblur/src/blur.cpp']
+                        sources=sources
                         )
-    packages = {"pyfastblur/libpyfastblur": ['__init__.py', 'pyfastblur_cpp.pyd', 'libpng16.dll', 'zlib.dll']}
+    packages = {"pyfastblur/libpyfastblur": ['__init__.py',
+                                             'pyfastblur_cpp.pyd',
+                                             'libpng16.dll',
+                                             'zlib.dll'
+                                             ]}
 
 else:
     bmodule = Extension('pyfastblur_cpp',
                         define_macros=VERSION,
-                        include_dirs=['pyfastblur/src/unix', '/usr/local/include'],
+                        include_dirs=[
+                            'pyfastblur/src',
+                            'pyfastblur/src/unix',
+                            '/usr/local/include'
+                            ],
                         library_dirs=['pyfastblur/src/unix', '/usr/local/lib'],
                         libraries=['png16', 'z'],
-                        sources=['pyfastblur/src/blur.cpp']
+                        sources=sources
                         )
-    packages = {"pyfastblur/libpyfastblur": ['__init__.py', 'pyfastblur_cpp.so', 'png16.so', 'z.so']}
+    packages = {"pyfastblur/libpyfastblur": ['__init__.py',
+                                             'pyfastblur_cpp.so',
+                                             'png16.so',
+                                             'z.so'
+                                             ]}
 
 setup(name='pyfastblur',
       version='1.0',
