@@ -1,13 +1,12 @@
 #include <Python.h>
 #include <iostream>
 #include <fstream>
-#include <cmath>
 #include <chrono>
-#include "png.h"
+#include <cmath>
 
-#define scl source_channel
-#define tcl target_channel
-#define sigma standard_deviation
+#include "png.h"
+#include "blur.h"
+
 #define SIGSIZE 8
 #define CHUNK_SIZE 8192
 
@@ -19,96 +18,6 @@ bool validate(FILE* source) {
 
 	int is_png = png_sig_cmp(png_signature, 0, SIGSIZE);
 	return (is_png == 0);
-}
-
-// implementation of http://blog.ivank.net/fastest-gaussian-blur.html
-int* boxes_for_gauss(int sigma, int num) {
-	auto avg_filter_width = sqrt((12 * sigma * sigma) / num + 1);
-	int wfloor = floor(avg_filter_width);
-	if (wfloor % 2 == 0) wfloor--;
-	int wu = wfloor + 2;
-
-	int const_a = (12 * sigma * sigma - num * wfloor * wfloor - 4 * num * wfloor - 3 * num);
-	int const_b = (-4 * wfloor - 4);
-	int med_ideal = const_a / const_b;
-	int med_round = round(med_ideal);
-
-	int* sizes = new int[num];
-	for (int i = 0; i < num; i++) {
-		sizes[i] = i < med_round ? wfloor : wu;
-	}
-	return sizes;
-}
-
-void box_blur_horizontal(png_byte* scl, png_byte* tcl, int w, int h, int r) {
-	float iarr = 1.f / (r + r + 1);
-	for (int i = 0; i < h; i++) {
-		int ti = i * w;
-		int li = ti;
-		int ri = ti + r;
-
-		int first_val = scl[ti];
-		int last_val = scl[ti + w - 1];
-		int val = (r + 1) * first_val;
-
-		for (int j = 0; j < r; j++) val += scl[ti + j];
-		for (int j = 0; j <= r; j++) {
-			val += scl[ri++] - first_val;
-			tcl[ti++] = round(val * iarr);
-		}
-		for (int j = (r + 1); j < (w - r); j++) {
-			val += scl[ri++] - scl[li++];
-			tcl[ti++] = round(val * iarr);
-		}
-		for (int j = (w - r); j < w; j++) {
-			val += last_val - scl[li++];
-			tcl[ti++] = round(val * iarr);
-		}
-	}
-}
-
-void box_blur_total(png_byte* scl, png_byte* tcl, int w, int h, int r) {
-	float iarr = 1.f / (r + r + 1);
-	for (int i = 0; i < w; i++) {
-		int ti = i;
-		int li = ti;
-		int ri = ti + r * w;
-
-		int first_val = scl[ti];
-		int last_val = scl[ti + w * (h - 1)];
-		int val = (r + 1) * first_val;
-
-		for (int j = 0; j < r; j++) val += scl[ti + j * w];
-		for (int j = 0; j <= r; j++) {
-			val += scl[ri] - first_val;
-			tcl[ti] = round(val * iarr);
-		}
-		for (int j = (r + 1); j < (h - r); j++) {
-			val += scl[ri] - scl[li];
-			tcl[ti] = round(val * iarr);
-		}
-		for (int j = (h - r); j < h; j++) {
-			val += last_val - scl[li];
-			tcl[ti] = round(val * iarr);
-		}
-	}
-}
-
-void box_blur_full(png_byte* scl, png_byte* tcl, int w, int h, int r) {
-	for (int i = 0; i < (w * h); i++) {
-		tcl[i] = scl[i];
-	}
-	box_blur_horizontal(tcl, scl, w, h, r);
-	box_blur_total(scl, tcl, w, h, r);
-}
-
-void gaussian_blur(png_byte* scl, png_byte* tcl, int w, int h, int r, int sb) {
-	auto boxes = boxes_for_gauss(r, 3);
-	box_blur_full(scl, tcl, w, h, (boxes[0] - 1) / 2);
-	if (sb) {
-		box_blur_full(tcl, scl, w, h, (boxes[1] - 1) / 2);
-		box_blur_full(scl, tcl, w, h, (boxes[2] - 1) / 2);
-	}
 }
 
 void process(FILE* source, FILE* target, int radius, int stronger_blur) {
@@ -151,8 +60,10 @@ void process(FILE* source, FILE* target, int radius, int stronger_blur) {
 
 	// there has to be a better way, but I don't know it yet
 	// allocate channels on the heap
-	png_byte* in_channels[4] = { new png_byte[size], new png_byte[size],
-								 new png_byte[size], new png_byte[alphasize] };
+	png_byte* in_channels[4] = {
+			new png_byte[size], new png_byte[size],
+			new png_byte[size], new png_byte[alphasize]
+	};
 	png_byte* buffer_channel = new png_byte[size];
 
 	if (setjmp(png_jmpbuf(png_ptr))) {
@@ -166,8 +77,8 @@ void process(FILE* source, FILE* target, int radius, int stronger_blur) {
 	}
 
 	/* [i][j] [i][j+1] [i][j+2] [i][j+3]
-		  R       G        B        A
-		  Unpack channels from 2d array provided by libpng
+	     R       G        B        A
+	   Unpack channels from 2d array provided by libpng
 	*/
 	int counter = 0;
 	for (int i = 0; i < height; i++) {
@@ -227,15 +138,15 @@ void process(FILE* source, FILE* target, int radius, int stronger_blur) {
 	png_init_io(png_wptr, target);
 
 	png_set_IHDR(
-		png_wptr,
-		info_wptr,
-		width,
-		height,
-		8,
-		png_get_color_type(png_ptr, info_ptr),
-		PNG_INTERLACE_NONE,
-		PNG_COMPRESSION_TYPE_DEFAULT,
-		PNG_FILTER_TYPE_DEFAULT
+			png_wptr,
+			info_wptr,
+			width,
+			height,
+			8,
+			png_get_color_type(png_ptr, info_ptr),
+			PNG_INTERLACE_NONE,
+			PNG_COMPRESSION_TYPE_DEFAULT,
+			PNG_FILTER_TYPE_DEFAULT
 	);
 
 	png_set_compression_level(png_wptr, 2);
@@ -243,7 +154,7 @@ void process(FILE* source, FILE* target, int radius, int stronger_blur) {
 	png_write_image(png_wptr, pixel_data);
 	png_write_end(png_wptr, NULL);
 
-	for (int i = 0; i < channels; i++) {
+	for (int i = 0; i < 4; i++) {
 		delete[] in_channels[i];
 	}
 	delete[] buffer_channel;
@@ -260,7 +171,7 @@ static PyObject* blur(PyObject* self, PyObject* args)
 	int radius;
 	int stronger_blur;
 
-	/* Consume a "file-like" object and write bytes to stdout */
+	/* Parse input args */
 	if (!PyArg_ParseTuple(args, "iOi", &radius, &obj, &stronger_blur)) {
 		return NULL;
 	}
@@ -302,9 +213,8 @@ static PyObject* blur(PyObject* self, PyObject* args)
 		Py_DECREF(data);
 	}
 	std::rewind(tmpf);
-
 	process(tmpf, tmpf_out, radius, stronger_blur);
-	fclose(tmpf);
+	std::fclose(tmpf);
 
 	std::rewind(tmpf_out);
 	// build _io.TextIOWrapper for open file descriptor
