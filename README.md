@@ -1,6 +1,15 @@
 ## pyfastblur
 Small Python library with a single purpose to apply fast blur to PNG images (libpng backend)
 
+# Install
+Windows: `python -m pip install pyfastblur`  
+Linux:
+```
+git clone https://github.com/sertraline/pyfastblur && cd pyfastblur
+python3 setup.py build bdist_wheel
+cd dist && python3 -m pip install ./pyfastblur*.whl
+```
+
 ### Usage
 ```python
 # example 1
