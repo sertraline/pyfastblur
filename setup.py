@@ -4,6 +4,9 @@ import os
 from glob import glob
 from shutil import move
 
+this_directory = os.path.abspath(os.path.dirname(__file__))
+with open(os.path.join(this_directory, 'README.md'), encoding='utf-8') as f:
+    long_description = f.read()
 
 class build_py(_build_py):
     def run(self):
@@ -57,7 +60,8 @@ setup(name='pyfastblur',
       description='Small Python library with a single purpose to apply fast blur to PNG images (libpng backend)',
       author='Toshiro Iwa',
       author_email='iwa@acid.im',
-      long_description='',
+      long_description=long_description,
+      long_description_content_type='text/markdown',
       url='https://github.com/sertraline/pyfastblur',
       packages=["pyfastblur", "pyfastblur/libpyfastblur"],
       package_data=packages,
