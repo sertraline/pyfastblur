@@ -1,0 +1,5 @@
+include pyfastblur/libpyfastblur/*
+include pyfastblur/src/win/*
+include pyfastblur/src/unix/*
+include pyfastblur/src/*
+include pyfastblur/*
