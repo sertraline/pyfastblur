@@ -18,7 +18,7 @@ class InvalidPathException:
         super().__init__(message)
 
 
-def blur(fileobj: Union[str, BytesIO], radius, stronger_blur: bool = False) -> BytesIO:
+def blur(fileobj: Union[str, BytesIO], radius, stronger_blur: bool = False) -> Union[BytesIO, None]:
     """
     :param fileobj: path to file or non-empty BytesIO object with raw PNG bytes
     :param radius: blur radius (higher = stronger)
@@ -51,6 +51,8 @@ def blur(fileobj: Union[str, BytesIO], radius, stronger_blur: bool = False) -> B
             raise InvalidTypeException
         iobuf = fileobj
     out_file = libpyfastblur.blur(radius, iobuf, int(stronger_blur))
+    if not out_file:
+        raise TypeError("blur() returned None")
     # output: _io.TextIOWrapper to a file mapped in memory
     # convert to BytesIO object
     out_buf = BytesIO()

@@ -20,10 +20,10 @@ bool validate(FILE* source) {
 	return (is_png == 0);
 }
 
-void process(FILE* source, FILE* target, int radius, int stronger_blur) {
+int process(FILE* source, FILE* target, int radius, int stronger_blur) {
 	if (!validate(source)) {
 		std::cerr << "Error: not a valid PNG file" << std::endl;
-		abort();
+		return NULL;
 	}
 	png_structp png_ptr;
 	png_infop info_ptr;
@@ -31,12 +31,12 @@ void process(FILE* source, FILE* target, int radius, int stronger_blur) {
 	png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
 	if (!png_ptr) {
 		std::cerr << "Failure on establishing read struct" << std::endl;
-		exit(1);
+		return NULL;
 	}
 	info_ptr = png_create_info_struct(png_ptr);
 	if (!info_ptr) {
 		std::cerr << "Failure on establishing info struct" << std::endl;
-		exit(1);
+		return NULL;
 	}
 	// skip signature header
 	png_set_sig_bytes(png_ptr, 8);
@@ -73,7 +73,7 @@ void process(FILE* source, FILE* target, int radius, int stronger_blur) {
 		}
 		delete[] buffer_channel;
 		std::cerr << "Failure on processing the image" << std::endl;
-		exit(1);
+		return NULL;
 	}
 
 	/* [i][j] [i][j+1] [i][j+2] [i][j+3]
@@ -118,21 +118,35 @@ void process(FILE* source, FILE* target, int radius, int stronger_blur) {
 	// write to file
 	png_structp png_wptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
 	if (!png_wptr) {
+	    png_destroy_read_struct(&png_ptr, &info_ptr, (png_infopp)0);
+	    for (int i = 0; i < 4; i++) {
+			delete[] in_channels[i];
+		}
+		delete[] buffer_channel;
 		std::cerr << "Failure on establishing write struct" << std::endl;
-		exit(1);
+		return NULL;
 	}
 
 	png_infop info_wptr = png_create_info_struct(png_wptr);
 	if (!info_wptr) {
+	    png_destroy_read_struct(&png_ptr, &info_ptr, (png_infopp)0);
+	    for (int i = 0; i < 4; i++) {
+			delete[] in_channels[i];
+		}
+		delete[] buffer_channel;
 		std::cerr << "Failure on establishing info write struct" << std::endl;
-		exit(1);
+		return NULL;
 	}
 
 	if (setjmp(png_jmpbuf(png_wptr))) {
+	    for (int i = 0; i < 4; i++) {
+			delete[] in_channels[i];
+		}
+		delete[] buffer_channel;
 		png_destroy_read_struct(&png_ptr, &info_ptr, (png_infopp)0);
 		png_destroy_write_struct(&png_wptr, &info_wptr);
 		std::cerr << "Failure on processing the image";
-		abort();
+		return NULL;
 	}
 
 	png_init_io(png_wptr, target);
@@ -160,6 +174,7 @@ void process(FILE* source, FILE* target, int radius, int stronger_blur) {
 	delete[] buffer_channel;
 	png_destroy_read_struct(&png_ptr, &info_ptr, (png_infopp)0);
 	png_destroy_write_struct(&png_wptr, &info_wptr);
+	return 1;
 }
 
 static PyObject* blur(PyObject* self, PyObject* args)
@@ -213,7 +228,15 @@ static PyObject* blur(PyObject* self, PyObject* args)
 		Py_DECREF(data);
 	}
 	std::rewind(tmpf);
-	process(tmpf, tmpf_out, radius, stronger_blur);
+	int ret;
+	ret = process(tmpf, tmpf_out, radius, stronger_blur);
+	if(!ret) {
+	    std::fclose(tmpf);
+	    std::fclose(tmpf_out);
+	    Py_DECREF(read_meth);
+	    Py_DECREF(read_args);
+	    return Py_BuildValue("");
+	}
 	std::fclose(tmpf);
 
 	std::rewind(tmpf_out);
