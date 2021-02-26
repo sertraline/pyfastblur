@@ -78,7 +78,7 @@ int process(FILE* source, FILE* target, int radius, int stronger_blur) {
 
 	/* [i][j] [i][j+1] [i][j+2] [i][j+3]
 	     R       G        B        A
-	   Unpack channels from 2d array provided by libpng
+	     Unpack channels from 2d array provided by libpng
 	*/
 	int counter = 0;
 	for (int i = 0; i < height; i++) {
@@ -118,8 +118,8 @@ int process(FILE* source, FILE* target, int radius, int stronger_blur) {
 	// write to file
 	png_structp png_wptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
 	if (!png_wptr) {
-	    png_destroy_read_struct(&png_ptr, &info_ptr, (png_infopp)0);
-	    for (int i = 0; i < 4; i++) {
+		png_destroy_read_struct(&png_ptr, &info_ptr, (png_infopp)0);
+		for (int i = 0; i < 4; i++) {
 			delete[] in_channels[i];
 		}
 		delete[] buffer_channel;
@@ -129,8 +129,8 @@ int process(FILE* source, FILE* target, int radius, int stronger_blur) {
 
 	png_infop info_wptr = png_create_info_struct(png_wptr);
 	if (!info_wptr) {
-	    png_destroy_read_struct(&png_ptr, &info_ptr, (png_infopp)0);
-	    for (int i = 0; i < 4; i++) {
+		png_destroy_read_struct(&png_ptr, &info_ptr, (png_infopp)0);
+		for (int i = 0; i < 4; i++) {
 			delete[] in_channels[i];
 		}
 		delete[] buffer_channel;
@@ -139,7 +139,7 @@ int process(FILE* source, FILE* target, int radius, int stronger_blur) {
 	}
 
 	if (setjmp(png_jmpbuf(png_wptr))) {
-	    for (int i = 0; i < 4; i++) {
+		for (int i = 0; i < 4; i++) {
 			delete[] in_channels[i];
 		}
 		delete[] buffer_channel;
@@ -152,15 +152,15 @@ int process(FILE* source, FILE* target, int radius, int stronger_blur) {
 	png_init_io(png_wptr, target);
 
 	png_set_IHDR(
-			png_wptr,
-			info_wptr,
-			width,
-			height,
-			8,
-			png_get_color_type(png_ptr, info_ptr),
-			PNG_INTERLACE_NONE,
-			PNG_COMPRESSION_TYPE_DEFAULT,
-			PNG_FILTER_TYPE_DEFAULT
+		png_wptr,
+		info_wptr,
+		width,
+		height,
+		8,
+		png_get_color_type(png_ptr, info_ptr),
+		PNG_INTERLACE_NONE,
+		PNG_COMPRESSION_TYPE_DEFAULT,
+		PNG_FILTER_TYPE_DEFAULT
 	);
 
 	png_set_compression_level(png_wptr, 2);
@@ -231,11 +231,11 @@ static PyObject* blur(PyObject* self, PyObject* args)
 	int ret;
 	ret = process(tmpf, tmpf_out, radius, stronger_blur);
 	if(!ret) {
-	    std::fclose(tmpf);
-	    std::fclose(tmpf_out);
-	    Py_DECREF(read_meth);
-	    Py_DECREF(read_args);
-	    return Py_BuildValue("");
+		std::fclose(tmpf);
+		std::fclose(tmpf_out);
+		Py_DECREF(read_meth);
+		Py_DECREF(read_args);
+		return Py_BuildValue("");
 	}
 	std::fclose(tmpf);
 
