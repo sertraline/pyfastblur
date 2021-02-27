@@ -4,21 +4,21 @@
 
 // implementation of http://blog.ivank.net/fastest-gaussian-blur.html
 int* boxes_for_gauss(int sigma, int num) {
-    float avg_filter_width = sqrt((12 * sigma * sigma / num) + 1);
-    int wfloor = floor(avg_filter_width);
-    if (wfloor % 2 == 0) wfloor--;
-    int wu = wfloor + 2;
+	float avg_filter_width = sqrt((12 * sigma * sigma / num) + 1);
+	int wfloor = floor(avg_filter_width);
+	if (wfloor % 2 == 0) wfloor--;
+	int wu = wfloor + 2;
 
-    auto const_a = (12 * sigma * sigma - num * wfloor * wfloor - 4 * num * wfloor - 3 * num);
+	auto const_a = (12 * sigma * sigma - num * wfloor * wfloor - 4 * num * wfloor - 3 * num);
 	auto const_b = (-4 * wfloor - 4);
 	auto med_ideal = const_a / const_b;
-    int med_round = round(med_ideal);
+	int med_round = round(med_ideal);
 
-    int* sizes = new int[num];
-    for (int i = 0; i < num; i++) {
-        sizes[i] = i < med_round ? wfloor : wu;
-    }
-    return sizes;
+	int* sizes = new int[num];
+	for (int i = 0; i < num; i++) {
+		sizes[i] = i < med_round ? wfloor : wu;
+	}
+	return sizes;
 }
 
 void box_blur_horizontal(png_byte* scl, png_byte* tcl, int w, int h, int r) {
@@ -79,19 +79,19 @@ void box_blur_total(png_byte* scl, png_byte* tcl, int w, int h, int r) {
 }
 
 void box_blur_full(png_byte* scl, png_byte* tcl, int w, int h, int r) {
-    for (int i = 0; i < (w * h); i++) {
-        tcl[i] = scl[i];
-    }
-    box_blur_horizontal(tcl, scl, w, h, r);
-    box_blur_total(scl, tcl, w, h, r);
+	for (int i = 0; i < (w * h); i++) {
+		tcl[i] = scl[i];
+	}
+	box_blur_horizontal(tcl, scl, w, h, r);
+	box_blur_total(scl, tcl, w, h, r);
 }
 
 void gaussian_blur(png_byte* scl, png_byte* tcl, int w, int h, int r, int enable_gaussian) {
-    auto boxes = boxes_for_gauss(r, 3);
-    box_blur_full(scl, tcl, w, h, (boxes[0] - 1) / 2);
-    if (enable_gaussian) {
-        box_blur_full(tcl, scl, w, h, (boxes[1] - 1) / 2);
-        box_blur_full(scl, tcl, w, h, (boxes[2] - 1) / 2);
-    }
-    delete[] boxes;
+	auto boxes = boxes_for_gauss(r, 3);
+	box_blur_full(scl, tcl, w, h, (boxes[0] - 1) / 2);
+	if (enable_gaussian) {
+		box_blur_full(tcl, scl, w, h, (boxes[1] - 1) / 2);
+		box_blur_full(scl, tcl, w, h, (boxes[2] - 1) / 2);
+	}
+	delete[] boxes;
 }
