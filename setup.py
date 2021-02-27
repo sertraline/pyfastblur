@@ -53,7 +53,7 @@ class build_py(_build_py):
 
 
 VERSION = [('MAJOR_VERSION', '1'),
-           ('MINOR_VERSION', '2')]
+           ('MINOR_VERSION', '3')]
 
 sources = ['pyfastblur/src/blur.cpp']
 include = ['pyfastblur/src',
@@ -89,7 +89,7 @@ else:
                                              ]}
 
 setup(name='pyfastblur',
-      version='1.2',
+      version='1.3',
       description='Small Python library with a single purpose to apply fast blur to PNG images (libpng backend)',
       author='Toshiro Iwa',
       author_email='iwa@acid.im',

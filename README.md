@@ -20,8 +20,8 @@ result = pyfastblur.blur("path/to/file.png", radius=24)
 # example 2
 result = pyfastblur.blur("path/to/file.png",
                          radius=24,
-                         stronger_blur=True)
-# stronger_blur makes additional blur passes, is much slower
+                         enable_gaussian=True)
+# enable_gaussian processes the image with gaussian blur instead of box blur (slower)
 ```
 ```python
 # example 3

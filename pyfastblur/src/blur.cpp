@@ -20,7 +20,7 @@ bool validate(FILE* source) {
 	return (is_png == 0);
 }
 
-int process(FILE* source, FILE* target, int radius, int stronger_blur) {
+int process(FILE* source, FILE* target, int radius, int enable_gaussian) {
 	if (!validate(source)) {
 		std::cerr << "Error: not a valid PNG file" << std::endl;
 		return NULL;
@@ -95,7 +95,7 @@ int process(FILE* source, FILE* target, int radius, int stronger_blur) {
 
 	auto t1 = std::chrono::high_resolution_clock::now();
 	for (int ch = 0; ch < channels; ch++) {
-		gaussian_blur(in_channels[ch], buffer_channel, width, height, radius, stronger_blur);
+		gaussian_blur(in_channels[ch], buffer_channel, width, height, radius, enable_gaussian);
 	}
 	auto t2 = std::chrono::high_resolution_clock::now();
 	auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count();
@@ -152,15 +152,15 @@ int process(FILE* source, FILE* target, int radius, int stronger_blur) {
 	png_init_io(png_wptr, target);
 
 	png_set_IHDR(
-		png_wptr,
-		info_wptr,
-		width,
-		height,
-		8,
-		png_get_color_type(png_ptr, info_ptr),
-		PNG_INTERLACE_NONE,
-		PNG_COMPRESSION_TYPE_DEFAULT,
-		PNG_FILTER_TYPE_DEFAULT
+			png_wptr,
+			info_wptr,
+			width,
+			height,
+			8,
+			png_get_color_type(png_ptr, info_ptr),
+			PNG_INTERLACE_NONE,
+			PNG_COMPRESSION_TYPE_DEFAULT,
+			PNG_FILTER_TYPE_DEFAULT
 	);
 
 	png_set_compression_level(png_wptr, 2);
@@ -184,10 +184,10 @@ static PyObject* blur(PyObject* self, PyObject* args)
 	PyObject* result = NULL;
 	PyObject* read_args;
 	int radius;
-	int stronger_blur;
+	int enable_gaussian;
 
 	/* Parse input args */
-	if (!PyArg_ParseTuple(args, "iOi", &radius, &obj, &stronger_blur)) {
+	if (!PyArg_ParseTuple(args, "iOi", &radius, &obj, &enable_gaussian)) {
 		return NULL;
 	}
 
@@ -229,7 +229,7 @@ static PyObject* blur(PyObject* self, PyObject* args)
 	}
 	std::rewind(tmpf);
 	int ret;
-	ret = process(tmpf, tmpf_out, radius, stronger_blur);
+	ret = process(tmpf, tmpf_out, radius, enable_gaussian);
 	if(!ret) {
 		std::fclose(tmpf);
 		std::fclose(tmpf_out);
@@ -249,13 +249,12 @@ static PyObject* blur(PyObject* self, PyObject* args)
 }
 
 static PyMethodDef module_methods[] = {
-	{"blur",  blur, METH_VARARGS,
-	 "Blur the image."},
-	{NULL, NULL, 0, NULL}
+		{"blur",  blur, METH_VARARGS, "Blur the image."},
+		{NULL, NULL, 0, NULL}
 };
 
 static struct PyModuleDef module = {
-	PyModuleDef_HEAD_INIT, "pyfastblur", "Apply fast blur to PNG images", -1, module_methods
+		PyModuleDef_HEAD_INIT, "pyfastblur", "Apply fast blur to PNG images", -1, module_methods
 };
 
 PyMODINIT_FUNC
